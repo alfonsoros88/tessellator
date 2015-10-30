@@ -3,6 +3,7 @@
 #include <pcl/common/common_headers.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/vtk_io.h>
+#include <pcl/io/ply_io.h>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/features/normal_3d.h>
@@ -18,6 +19,7 @@ namespace fs = boost::filesystem;
 
 
 int main(int argc, char *argv[]) {
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals(new pcl::PointCloud<pcl::PointNormal>);
 
     // Parse arguments
     po::options_description desc;
@@ -66,10 +68,9 @@ int main(int argc, char *argv[]) {
         pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
         ne.setInputCloud(cloud);
         ne.setSearchMethod(tree);
-        ne.setKSearch(20);
+        ne.setKSearch(10);
         ne.compute(*normals);
 
-        pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals(new pcl::PointCloud<pcl::PointNormal>);
         pcl::concatenateFields(*cloud, *normals, *cloud_with_normals);
 
         pcl::search::KdTree<pcl::PointNormal>::Ptr tree2(new pcl::search::KdTree<pcl::PointNormal>);
@@ -86,7 +87,8 @@ int main(int argc, char *argv[]) {
         gp3.setMaximumSurfaceAngle(M_PI/4); // 45 degrees
         gp3.setMinimumAngle(M_PI/20); // 10 degrees
         gp3.setMaximumAngle(2*M_PI/3); // 120 degrees
-        gp3.setNormalConsistency(false);
+        gp3.setNormalConsistency(true);
+        gp3.setConsistentVertexOrdering(true);
 
         gp3.setInputCloud(cloud_with_normals);
         gp3.setSearchMethod(tree2);
@@ -98,17 +100,29 @@ int main(int argc, char *argv[]) {
     } else {
         output_file = fs::current_path();
         output_file /= input_file.filename();
-        output_file.replace_extension(".vtk");
+        output_file.replace_extension(".ply");
     }
 
     if (!output_file.has_extension()) {
-        output_file.replace_extension(".vtk");
+        output_file.replace_extension(".ply");
+    } else {
+        if (fs::extension(output_file).compare(".vtk") == 0) {
+            pcl::io::saveVTKFile (output_file.string(), triangles);
+        }
+        else if (fs::extension(output_file).compare(".ply") == 0) {
+            pcl::io::savePLYFile (output_file.string(), triangles);
+        } else {
+            std::cerr << "Unknown output format" << std::endl;
+            return 1;
+        }
     }
-    pcl::io::saveVTKFile (output_file.string(), triangles);
 
     if (vm.count("show")) {
         pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer());
         viewer->addPolygonMesh(triangles);
+
+        // Display normals
+        //viewer->addPointCloudNormals<pcl::PointNormal, pcl::PointNormal>(cloud_with_normals, cloud_with_normals, 1, 0.05, "normals");
 
         while (!viewer->wasStopped()) {
             viewer->spinOnce (100);
