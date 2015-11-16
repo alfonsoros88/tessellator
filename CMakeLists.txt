@@ -2,7 +2,9 @@ cmake_minimum_required (VERSION 2.8)
 
 include (ExternalProject)
 
-##   Install locally the RGBDReader to read an scene                           #
+project (tessellator)
+
+##  Install locally the RGBDReader to read an scene                           #
 
 ExternalProject_Add (project_RGBDReader
     GIT_REPOSITORY "https://github.com/alfonsoros88/RGBDReader.git"
@@ -18,7 +20,10 @@ set_property(TARGET RGBDReader
 
 add_dependencies(RGBDReader project_RGBDReader)
 
-##   Find the rest of the necessary libraries                                  #
+##  Find the rest of the necessary libraries                                  #
+
+find_package (Boost COMPONENTS program_options filesystem REQUIRED)
+include_directories (${Boost_INCLUDE_DIRS})
 
 find_package (PCL REQUIRED)
 include_directories (${PCL_INCLUDE_DIRS})
@@ -26,14 +31,17 @@ include_directories (${PCL_INCLUDE_DIRS})
 find_package (OpenCV REQUIRED)
 include_directories (${OpenCV_INCLUDE_DIRS})
 
-find_package (Boost REQUIRED COMPONENTS program_options filesystem)
-include_directories (${Boost_INCLUDE_DIRS})
-
+##  Build the executable
 
 add_executable (tessellator src/main.cpp)
 target_link_libraries (tessellator
     ${PCL_LIBRARIES} 
     ${OpenCV_LIBRARIES} 
-    boost_filesystem
+    ${Boost_LIBRARIES}
     boost_program_options
+    boost_filesystem
     RGBDReader)
+
+## Installation directives
+
+install (TARGETS tessellator DESTINATION bin)
