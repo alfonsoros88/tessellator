@@ -6,19 +6,16 @@ project (tessellator)
 
 ##  Install locally the RGBDReader to read an scene                           #
 
-ExternalProject_Add (project_RGBDReader
-    GIT_REPOSITORY "https://github.com/alfonsoros88/RGBDReader.git"
-    GIT_TAG         master
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/contrib
+ExternalProject_Add (RGBDReader
+  PREFIX         "RGBDReader"
+  GIT_REPOSITORY "https://github.com/alfonsoros88/RGBDReader.git"
+  GIT_TAG         master
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/contrib
 )
 
 include_directories (${CMAKE_BINARY_DIR}/contrib/include)
 
-add_library(RGBDReader STATIC IMPORTED)
-set_property(TARGET RGBDReader 
-    PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/contrib/lib/libRGBDReader.so)
-
-add_dependencies(RGBDReader project_RGBDReader)
+find_library (RGBDReader_LIBRARY NAMES RGBDReader HINTS ${CMAKE_BINARY_DIR}/contrib/lib)
 
 ##  Find the rest of the necessary libraries                                  #
 
@@ -40,7 +37,7 @@ target_link_libraries (tessellator
     ${Boost_LIBRARIES}
     boost_program_options
     boost_filesystem
-    RGBDReader)
+    ${RGBDReader_LIBRARY})
 
 ## Installation directives
 
